@@ -1,0 +1,39 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+}
+
+body {
+  min-height: 100vh;
+   background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Custom utility classes */
+.glass-container {
+  @apply backdrop-blur-md bg-white/30 rounded-lg shadow-xl;
+}
+
+.card-hover {
+  @apply transition-transform duration-300 hover:transform hover:scale-105;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
