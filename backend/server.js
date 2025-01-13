@@ -71,8 +71,54 @@ app.get('/api/allocations', (req, res) => {
 
 app.post('/api/allocations', (req, res) => {
     const { resource_id, project_id, start_date, end_date } = req.body;
+    
+    // Log the incoming data
+    console.log('Allocation request body:', req.body);
+    
+    // Validate the input
+    if (!resource_id || !project_id || !start_date || !end_date) {
+        return res.status(400).json({ 
+            error: 'Missing required fields',
+            received: { resource_id, project_id, start_date, end_date }
+        });
+    }
+
     const query = 'INSERT INTO allocations (resource_id, project_id, start_date, end_date) VALUES (?, ?, ?, ?)';
+    
     db.query(query, [resource_id, project_id, start_date, end_date], (err, result) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ 
+                error: err.message,
+                sqlState: err.sqlState,
+                code: err.code 
+            });
+        }
+        res.json({ 
+            id: result.insertId,
+            resource_id,
+            project_id,
+            start_date,
+            end_date
+        });
+    });
+});
+// Routes for Projects
+app.get('/api/projects', (req, res) => {
+    const query = 'SELECT * FROM projects';
+    db.query(query, (err, results) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(results);
+    });
+});
+
+app.post('/api/projects', (req, res) => {
+    const { name, description, start_date, end_date } = req.body;
+    const query = 'INSERT INTO projects (name, description, start_date, end_date) VALUES (?, ?, ?, ?)';
+    db.query(query, [name, description, start_date, end_date], (err, result) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
@@ -81,6 +127,29 @@ app.post('/api/allocations', (req, res) => {
     });
 });
 
+// Optionally, add these routes for more functionality
+app.put('/api/projects/:id', (req, res) => {
+    const { name, description, start_date, end_date } = req.body;
+    const query = 'UPDATE projects SET name = ?, description = ?, start_date = ?, end_date = ? WHERE id = ?';
+    db.query(query, [name, description, start_date, end_date, req.params.id], (err, result) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ id: req.params.id, ...req.body });
+    });
+});
+
+app.delete('/api/projects/:id', (req, res) => {
+    const query = 'DELETE FROM projects WHERE id = ?';
+    db.query(query, [req.params.id], (err, result) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ message: 'Project deleted successfully' });
+    });
+});
 // Usage History
 app.get('/api/usage-history/:resourceId', (req, res) => {
     const query = 'SELECT * FROM usage_history WHERE resource_id = ? ORDER BY created_at DESC';
