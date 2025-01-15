@@ -3,6 +3,13 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const events = require('events');
 const app = express();
+const path = require('path');
+
+
+app.use(express.static(path.join(__dirname, 'dist'))); // Serve frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'dist', 'index.html')); // Fallback for React SPA
+});
 
 // Middleware
 app.use(cors());
