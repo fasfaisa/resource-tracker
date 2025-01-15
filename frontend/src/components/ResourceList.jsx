@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Bell, Search, Filter } from 'lucide-react';
+import { Bell, Search, X } from 'lucide-react';
 
 const RESOURCE_STATUSES = ["Available", "In Use", "Under Maintenance"];
 
@@ -13,6 +13,20 @@ const ResourceList = () => {
   const [notifications, setNotifications] = useState([]);
   const [categories, setCategories] = useState(new Set());
   const [updating, setUpdating] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef(null);
+
+  // Close notifications when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     fetchResources();
@@ -38,62 +52,69 @@ const ResourceList = () => {
   const updateResourceStatus = async (resourceId, newStatus) => {
     setUpdating(resourceId);
     try {
-        console.log('Sending update request:', { resourceId, newStatus }); // Debug log
-
-        const response = await fetch(`http://localhost:5000/api/resources/${resourceId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus }),
+      const response = await fetch(`http://localhost:5000/api/resources/${resourceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
       });
-        const data = await response.json();
+      const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to update status');
-        }
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update status');
+      }
 
-        console.log('Update response:', data); // Debug log
+      // Update resources immediately
+      setResources(resources.map(resource => 
+        resource.id === resourceId 
+          ? { ...resource, status: newStatus }
+          : resource
+      ));
 
-        // Update resources with the confirmed status from server
-        setResources(resources.map(resource => 
-            resource.id === resourceId 
-                ? { ...resource, status: newStatus }
-                : resource
-        ));
-
-        // Add notification using server message
-        setNotifications(prev => [{
-            message: data.message || `Resource status updated to ${newStatus}`,
-            timestamp: new Date()
-        }, ...prev].slice(0, 5));
-
+      // Don't add notification here since we'll get it from SSE
+      
     } catch (error) {
-        console.error('Error updating resource status:', error);
-        setNotifications(prev => [{
-            message: `Error: ${error.message}`,
-            timestamp: new Date()
-        }, ...prev].slice(0, 5));
-        // Revert the optimistic update by fetching fresh data
-        fetchResources();
+      console.error('Error updating resource status:', error);
+      // Only add error notifications directly
+      setNotifications(prev => [{
+        message: `Error: ${error.message}`,
+        timestamp: new Date(),
+        id: Date.now() // Add unique ID
+      }, ...prev]);
     } finally {
-        setUpdating(null);
+      setUpdating(null);
     }
-};
-const checkResourceUpdates = () => {
-  const eventSource = new EventSource('http://localhost:5000/api/resources/status-stream');
+  };
 
-  eventSource.onmessage = (event) => {
+  const checkResourceUpdates = () => {
+    const eventSource = new EventSource('http://localhost:5000/api/resources/status-stream');
+
+    eventSource.onmessage = (event) => {
       const update = JSON.parse(event.data);
-      setNotifications((prev) => [update, ...prev].slice(0, 5));
-      fetchResources(); // Optionally refresh resources
-  };
+      // Add a unique ID to the notification
+      const notificationWithId = {
+        ...update,
+        id: Date.now()
+      };
+      
+      // Check if this notification is already in the list
+      setNotifications(prev => {
+        if (!prev.some(notification => 
+          notification.message === update.message && 
+          Math.abs(new Date(notification.timestamp) - new Date(update.timestamp)) < 1000
+        )) {
+          return [notificationWithId, ...prev].slice(0, 5);
+        }
+        return prev;
+      });
+    };
 
-  eventSource.onerror = (err) => {
+    eventSource.onerror = (err) => {
       console.error('Error in SSE connection:', err);
-      eventSource.close(); // Close on error
-  };
+      eventSource.close();
+    };
 
-  return () => eventSource.close();
-};
+    return () => eventSource.close();
+  };
 
 useEffect(() => {
   const cleanup = checkResourceUpdates();
@@ -130,30 +151,79 @@ useEffect(() => {
       </div>
     );
   }
+ const clearNotification = (index) => {
+    setNotifications(notifications.filter((_, i) => i !== index));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <h1 className="text-4xl font-bold text-blue-500">Resource Management</h1>
-        <div className="relative">
-          <Bell className="text-blue-500 cursor-pointer" />
-          {notifications.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-              {notifications.length}
-            </span>
+        <div className="relative" ref={notificationRef}>
+          <div className="relative inline-block">
+            <Bell 
+              className="mt-5 text-blue-500 cursor-pointer hover:text-blue-600"
+              onClick={() => setShowNotifications(!showNotifications)}
+            />
+            {notifications.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                {notifications.length}
+              </span>
+            )}
+          </div>
+          
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-50 border border-gray-200">
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold text-gray-700">Notifications</h3>
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={() => setNotifications([])}
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    No new notifications
+                  </div>
+                ) : (
+                  notifications.map((notification, index) => (
+                    <div 
+                      key={index}
+                      className="p-4 border-b border-gray-100 hover:bg-gray-50 relative"
+                    >
+                      <button
+                        onClick={() => clearNotification(index)}
+                        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X size={16} />
+                      </button>
+                      <p className="text-sm text-gray-600 pr-6">{notification.message}</p>
+                      <span className="text-xs text-gray-400 mt-1 block">
+                        {new Date(notification.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
-
-      {notifications.length > 0 && (
-        <div className="space-y-2">
-          {notifications.map((notification, index) => (
-            <div key={index} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <p>{notification.message}</p>
-            </div>
-          ))}
-        </div>
-      )}
 
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">

@@ -18,9 +18,15 @@ function Navbar() {
             </Link>
           </div>
           <div className="flex items-center space-x-8">
+          <Link
+              to="/"
+              className={`${isActive('/')} border-b-2 transition-colors duration-200 px-1 py-2`}
+            >
+              Home
+            </Link>
             <Link
               to="/resource"
-              className={`${isActive('/')} border-b-2 transition-colors duration-200 px-1 py-2`}
+              className={`${isActive('/resource')} border-b-2 transition-colors duration-200 px-1 py-2`}
             >
               Resources
             </Link>
