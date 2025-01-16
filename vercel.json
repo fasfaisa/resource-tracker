@@ -34,10 +34,11 @@
     }
   ],
   "env": {
-    "MYSQL_HOST": "",
-    "MYSQL_USER": "",
+    "MYSQL_HOST": "localhost",
+    "MYSQL_USER": "root",
     "MYSQL_PASSWORD": "",
     "MYSQL_DATABASE": "resource_tracker",
     "MYSQL_PORT": "3306"
+  
   }
 }
