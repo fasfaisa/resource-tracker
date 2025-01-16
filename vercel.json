@@ -2,34 +2,42 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "src": "frontend/dist/**",
+      "use": "@vercel/static"
     },
     {
-      "src": "backend/*.js",
+      "src": "backend/server.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/resources/status-stream",
+      "dest": "/backend/server.js",
+      "headers": {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      }
+    },
     {
       "src": "/api/(.*)",
       "dest": "/backend/server.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/dist/$1"
+      "dest": "/frontend/dist/$1",
+      "continue": true
+    },
+    {
+      "src": "/[^.]+",
+      "dest": "/frontend/dist/index.html"
     }
   ],
   "env": {
-    "DB_HOST": "localhost",
-    "DB_USER": "root",
-    "DB_PASSWORD": "",
-    "DB_NAME": "resource_tracker",
-    "PORT": "PORT",
-    "NODE_ENV": "production"
-    
+    "MYSQL_HOST": "",
+    "MYSQL_USER": "",
+    "MYSQL_PASSWORD": "",
+    "MYSQL_DATABASE": "resource_tracker",
+    "MYSQL_PORT": "3306"
   }
 }
