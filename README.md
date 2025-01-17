@@ -79,3 +79,11 @@ npm install
 ```bash
 npm run dev
 ```
+<div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+  <img alt="Screenshot 1" width="200" src="Screenshot (373).png">
+  <img alt="Screenshot 2" width="200" src="Screenshot (374).png">
+  <img alt="Screenshot 3" width="200" src="Screenshot (375).png">
+  <img alt="Screenshot 4" width="200" src="Screenshot (376).png">
+  <img alt="Screenshot 5" width="200" src="Screenshot (377).png">
+   <img alt="Screenshot 5" width="200" src="Screenshot (378).png">
+</div>
