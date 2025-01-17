@@ -3,33 +3,30 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const events = require('events');
 const app = express();
-const path = require('path');
-
-
-app.use(express.static(path.join(__dirname, 'dist')));
-app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
-});
 
 // Middleware
-app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-        ? 'your-frontend-domain' 
-        : 'http://localhost:5173',
-    credentials: true
-}));
+app.use(cors());
+app.use(express.json());
+
 // Event emitter setup
 const statusUpdateEmitter = new events.EventEmitter();
 let recentUpdates = [];
 
 // Database connection
-
 const db = mysql.createConnection({
-    host: process.env.MYSQL_HOST || 'localhost',
-    user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'resource_tracker',
-    port: process.env.MYSQL_PORT || 3306,
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'resource_tracker',
+    port: 3306
+});
+
+db.connect((err) => {
+    if (err) {
+        console.error('Error connecting to the database:', err);
+        return;
+    }
+    console.log('Connected to MySQL database');
 });
 
 db.connect((err) => {
