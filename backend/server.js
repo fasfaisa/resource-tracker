@@ -30,7 +30,6 @@ const db = mysql.createConnection({
     password: process.env.MYSQL_PASSWORD || '',
     database: process.env.MYSQL_DATABASE || 'resource_tracker',
     port: process.env.MYSQL_PORT || 3306,
-    ssl: process.env.NODE_ENV === 'production' ? {} : false
 });
 
 db.connect((err) => {
